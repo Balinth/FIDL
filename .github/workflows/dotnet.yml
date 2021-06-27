@@ -22,7 +22,7 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: ./build.sh --target Test
+      run: ./build.sh --target Test --skip Compile
     - name: Publish coverage report
       uses: coverallsapp/github-action@master
       with:
