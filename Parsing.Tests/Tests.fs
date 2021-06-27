@@ -20,9 +20,8 @@ let ``Should parse all primitive types`` () =
     // act
     let results =
         Seq.map (run pPrimitive) primitives
-        |> Seq.choose (function
-            | Success(_) -> None
-            | Failure(msg,error,state) -> Some (Failure(msg,error,state)))
+
+    // assert
     Assert.All(
         results,
         fun result ->
