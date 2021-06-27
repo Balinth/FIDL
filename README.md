@@ -1,3 +1,4 @@
+[![Coverage Status](https://coveralls.io/repos/github/Balinth/FIDL/badge.svg?branch=master)](https://coveralls.io/github/Balinth/FIDL?branch=master)
 # FIDL
 Functional Interface Declaration Language
 
