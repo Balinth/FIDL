@@ -16,21 +16,21 @@ type Collection =
     | List of FIDLType
     | Map of key:Primitive * value:FIDLType
 
-and DiscriminatedUnion = {
+and Choice = {
     Identifier: Identifier
-    Cases: Map<Identifier,FIDLType>
+    Cases: Map<Identifier,FIDLType option>
 }
 
 and Record = {
     Identifier: Identifier
-    Attributes: Map<Identifier, FIDLType>
+    Fields: Map<Identifier, FIDLType>
 }
 
 and FIDLType =
     | PrimitiveType of Primitive
     | CollectionType of Collection
     | RecordType of Record
-    | DiscriminatedUnionType of DiscriminatedUnion
+    | ChoiceType of Choice
 
 type FIDLFunction = {
     Identifier: Identifier
