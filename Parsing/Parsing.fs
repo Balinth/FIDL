@@ -57,13 +57,15 @@ let pFIDLType =
         |>> PrimitiveType
 
     let pListType =
-        pstringCI "list of"
+        pstringCI "list"
+        >.>. pstringCI "of"
         >.>. pFIDLType
         |>> List
         |>> CollectionType
 
     let pMapType =
-        pstringCI "map of"
+        pstringCI "map"
+        >.>. pstringCI "of"
         >.>. pPrimitive
         .>.> (pstringCI "by")
         .>.>. pFIDLType
@@ -88,10 +90,13 @@ let pFIDLType =
     let pRecordType =
         pstringCI "record"
         >.>. pIdentifier
-        .>.>. (pCurlyBraces (
+        .>. (pCurlyBraces (
                 sepEndBy1 
                     pTypeAssignment
-                    (pchar ';' <|> newline .>> spaces)
+                    ((
+                        attempt (newline >. pchar ';')
+                        <|> pchar ';'
+                        <|> newline) .>> spaces)
             )
         )
         |>> (fun (identifier,fields) ->

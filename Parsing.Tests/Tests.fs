@@ -8,6 +8,31 @@ open AST
 open Parsing
 open FParsec
 
+// any * will be replaced with zero or more whitespaces
+// any + will be replaced with one or more whitespaces
+// whitesapce: ' ', '\t', '\r', "\r\n", '\n'
+let whiteSpacePermutations (str:string) =
+    let optionalSplit = str.Split('*')
+    seq {
+        String.Join("", optionalSplit)
+        String.Join(" ", optionalSplit)
+        String.Join("\t", optionalSplit)
+        String.Join("\r", optionalSplit)
+        String.Join("\n", optionalSplit)
+        String.Join("\r\n", optionalSplit)
+    }
+    |> Seq.collect (fun s ->
+        let mandatorySplit = s.Split('+')
+        seq {
+            String.Join(" ", mandatorySplit)
+            String.Join("\t", mandatorySplit)
+            String.Join("\r", mandatorySplit)
+            String.Join("\n", mandatorySplit)
+            String.Join("\r\n", mandatorySplit)
+        }
+    )
+    
+
 [<Fact>]
 let ``Should parse all primitive types`` () =
     // arrange
@@ -17,9 +42,11 @@ let ``Should parse all primitive types`` () =
         |> Seq.cast<Primitive>
         |> Seq.map primitiveTokenToString
 
+    let sut = run pPrimitive
+
     // act
     let results =
-        Seq.map (run pPrimitive) primitives
+        Seq.map sut primitives
 
     // assert
     Assert.All(
@@ -40,10 +67,11 @@ let ``Should parse all primitive types`` () =
 [<InlineData("__Aafdas_id__D__2432_DA423")>]
 let ``Should correctly parse valid identifiers`` identifier =
     // arrange
+    let sut = run pIdentifier
 
     // act
     let result =
-        run pIdentifier identifier
+        sut identifier
 
     // assert
     Assert.True (
@@ -68,10 +96,11 @@ let ``Should correctly parse valid identifiers`` identifier =
 [<InlineData("+__Aafdas_id__D__2432_DA423")>]
 let ``Should reject invalid identifiers`` identifier =
     // arrange
+    let sut = run pIdentifier
 
     // act
     let result =
-        run pIdentifier identifier
+        sut identifier
 
     // assert
     Assert.True (
@@ -81,20 +110,79 @@ let ``Should reject invalid identifiers`` identifier =
     )
 
 let typeDeclSamples : obj[] seq =
-    seq {
+    let samples : obj[] seq = seq {
         yield [|"guid"; GUID |> PrimitiveType|]
-        yield [|"record User {ID:guid}"; {Identifier="User";Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
-        yield [|"record User {ID:list of guid}"; {Identifier="User";Fields=Map.ofList ["ID",GUID |> PrimitiveType |> List |> CollectionType]} |> RecordType|]
+        yield [|"record+User*{*ID*:*guid*}*"; {Identifier="User";Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
+        yield [|"record+User*{*ID*:*guid*;*}*"; {Identifier="User";Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
+        yield [|
+            "record+User*{*ID*:*list+of+guid*}*"
+            RecordType {
+                Identifier = "User"
+                Fields = Map.ofList [
+                    "ID",
+                    CollectionType (
+                        List (
+                            PrimitiveType GUID))
+                ]
+            }
+        |]
+        yield [|
+            "record+User*{*things*:*map+of+guid+by+int*}*"
+            RecordType {
+                Identifier = "User"
+                Fields = Map.ofList [
+                    "things",
+                    CollectionType (
+                        Map (
+                            GUID,
+                            PrimitiveType Integer
+                        ))
+                ]
+            }
+        |]
+        yield [|
+            "record+User*{*ID*:*guid*;*Name*:*STRING*}*"
+            RecordType {
+                Identifier = "User"
+                Fields = Map.ofList [
+                    "ID", GUID |> PrimitiveType
+                    "Name", String |> PrimitiveType
+                ]
+            }
+        |]
+        yield [|
+            "record+User*{*ID*:*guid*;*Name*:*STRING*;*things*:*map+of+guid+by+int}*"
+            RecordType {
+                Identifier = "User"
+                Fields = Map.ofList [
+                    "ID",GUID |> PrimitiveType
+                    "Name", String |> PrimitiveType
+                    "things", CollectionType (
+                        Map (
+                            GUID,
+                            Integer |> PrimitiveType
+                        )
+                    )
+                ]
+            }
+        |]
     }
+    samples
+    |> Seq.collect (fun objs ->
+        whiteSpacePermutations (objs.[0] :?> string)
+        |> Seq.map (fun permutation -> [|permutation; objs.[1]|])
+    )
+
 
 [<Theory>]
 [<MemberData(nameof typeDeclSamples)>]
 let ``Should parse valid type declarations`` typeDecl expected=
     // arrange
-
+    let sut =
+        run pFIDLType
     // act
     let result =
-        run pFIDLType typeDecl
+        sut typeDecl
 
     // assert
     match result with
