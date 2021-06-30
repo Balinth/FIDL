@@ -36,9 +36,12 @@ and Record = {
 and FIDLType =
     | PrimitiveType of Primitive
     | CollectionType of Collection
+    | UnresolvedTypeRef of UnresolvedTypeRef
+
+and TypeDecl =
     | RecordType of Record
     | ChoiceType of Choice
-    | UnresolvedTypeRef of UnresolvedTypeRef
+
 
 type FIDLFunction = {
     Identifier: Identifier

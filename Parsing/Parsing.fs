@@ -20,6 +20,18 @@ let pCurlyBraces p =
     >. p
     .> pchar '}'
 
+let pNonNewlineSpace =
+    pchar ' '
+    <|> pchar '\t'
+
+let pSemicolonOrNewlineSep =
+    attempt (newline >. pchar ';')
+    <|> pchar ';'
+    <|> newline
+
+let semicolonOrNewline sepByVariant p =
+    sepByVariant (p .>> (many pNonNewlineSpace)) (pSemicolonOrNewlineSep .>> spaces)
+
 let primitiveTokenToString token =
     match token with
     | Integer -> "int"
@@ -75,15 +87,30 @@ let pFIDLType =
         |>> Map
         |>> CollectionType
 
-    let nonNewlineSpace =
-        pchar ' '
-        <|> pchar '\t'
+    let pUnresolvedTypeRef =
+        pQualifiedIdentifier
+        |>> (fun ids ->
+            match ids with
+            | [one] -> Identifier one
+            | more -> QualifiedIdentifier more
+        ) |>> UnresolvedTypeRef
 
+    pRef := choice [
+        pPrimitiveType
+        pListType
+        pMapType
+        pUnresolvedTypeRef
+    ]
+
+    pFIDLType
+
+let pTypeDecl =
+    
     let pTypeAssignment =
         pIdentifier
         .> (pchar ':')
         .>. pFIDLType
-        .>> (many nonNewlineSpace)
+        .>> (many pNonNewlineSpace)
     
     let pOptTypeAssignment =
         pIdentifier
@@ -95,12 +122,7 @@ let pFIDLType =
         pstringCI "record"
         >.>. pIdentifier
         .>. (pCurlyBraces (
-                sepEndBy1 
-                    pTypeAssignment
-                    ((
-                        attempt (newline >. pchar ';')
-                        <|> pchar ';'
-                        <|> newline) .>> spaces)
+                semicolonOrNewline sepEndBy1 pTypeAssignment
             )
         )
         |>> (fun (identifier,fields) ->
@@ -122,24 +144,10 @@ let pFIDLType =
             {Identifier=identifier;Cases=Map.ofList cases}
             |> ChoiceType)
 
-    let pUnresolvedTypeRef =
-        pQualifiedIdentifier
-        |>> (fun ids ->
-            match ids with
-            | [one] -> Identifier one
-            | more -> QualifiedIdentifier more
-        ) |>> UnresolvedTypeRef
-
-    pRef := choice [
-        pPrimitiveType
-        pListType
-        pMapType
+    choice [
         pRecordType
         pChoiceType
-        pUnresolvedTypeRef
     ]
-
-    pFIDLType
 
 let pFieldDecl =
     pIdentifier

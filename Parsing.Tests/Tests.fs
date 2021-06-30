@@ -109,9 +109,37 @@ let ``Should reject invalid identifiers`` identifier =
         | _ -> false
     )
 
-let typeDeclSamples : obj[] seq =
+let fidlTypes : obj[] seq =
     let samples : obj[] seq = seq {
         yield [|"guid"; GUID |> PrimitiveType|]
+    }
+    samples
+    |> Seq.collect (fun objs ->
+        whiteSpacePermutations (objs.[0] :?> string)
+        |> Seq.map (fun permutation -> [|permutation; objs.[1]|])
+    )
+
+
+[<Theory>]
+[<MemberData(nameof fidlTypes)>]
+let ``Should parse valid FIDL types`` typeDecl expected=
+    // arrange
+    let sut =
+        run pFIDLType
+    // act
+    let result =
+        sut typeDecl
+
+    // assert
+    match result with
+    | Failure _ ->
+        failwith (sprintf "%A" result)
+    | Success (actual,_,_) ->
+        Assert.Equal (actual, expected)
+
+
+let typeDeclSamples : obj[] seq =
+    let samples : obj[] seq = seq {
         yield [|
             "choice+result*|*Ok*:*string*|*Error"
             ChoiceType {
@@ -221,13 +249,12 @@ let typeDeclSamples : obj[] seq =
         |> Seq.map (fun permutation -> [|permutation; objs.[1]|])
     )
 
-
 [<Theory>]
 [<MemberData(nameof typeDeclSamples)>]
-let ``Should parse valid type declarations`` typeDecl expected=
+let ``Should parse valid user type declarations`` typeDecl expected=
     // arrange
     let sut =
-        run pFIDLType
+        run pTypeDecl
     // act
     let result =
         sut typeDecl
@@ -238,8 +265,3 @@ let ``Should parse valid type declarations`` typeDecl expected=
         failwith (sprintf "%A" result)
     | Success (actual,_,_) ->
         Assert.Equal (actual, expected)
-    //Assert.True(
-    //    match result with
-    //    | Success (result,_,pos) when pos.Index = (int64 typeDecl.Length) -> true
-    //    | _ -> false
-    //)
