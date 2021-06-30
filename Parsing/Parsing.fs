@@ -49,6 +49,9 @@ let pIdentifier =
     .>>. manyChars (asciiLetter <|> digit <|> (pchar '_'))
     |>> (fun (c,str) -> c.ToString() + str)
 
+let pQualifiedIdentifier =
+    sepBy1 (pIdentifier .>> spaces) (pchar '.' .>> spaces)
+
 let pFIDLType =
     let pFIDLType, pRef = createParserForwardedToRef()
 
@@ -67,7 +70,7 @@ let pFIDLType =
         pstringCI "map"
         >.>. pstringCI "of"
         >.>. pPrimitive
-        .>.> (pstringCI "by")
+        .>.> (pstringCI "to")
         .>.>. pFIDLType
         |>> Map
         |>> CollectionType
@@ -84,8 +87,9 @@ let pFIDLType =
     
     let pOptTypeAssignment =
         pIdentifier
-        .> (pchar ':')
-        .>. (opt pFIDLType)
+        .>. opt (
+                (pchar ':')
+                >. pFIDLType)
 
     let pRecordType =
         pstringCI "record"
@@ -109,7 +113,7 @@ let pFIDLType =
     let pChoiceType =
         pstringCI "choice"
         >.>. pIdentifier
-        .>.>. many1 (
+        .>. many1 (
             pchar '|'
             >. pOptTypeAssignment
             .>> spaces
@@ -118,12 +122,21 @@ let pFIDLType =
             {Identifier=identifier;Cases=Map.ofList cases}
             |> ChoiceType)
 
+    let pUnresolvedTypeRef =
+        pQualifiedIdentifier
+        |>> (fun ids ->
+            match ids with
+            | [one] -> Identifier one
+            | more -> QualifiedIdentifier more
+        ) |>> UnresolvedTypeRef
+
     pRef := choice [
         pPrimitiveType
         pListType
         pMapType
         pRecordType
         pChoiceType
+        pUnresolvedTypeRef
     ]
 
     pFIDLType

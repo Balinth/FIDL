@@ -112,6 +112,15 @@ let ``Should reject invalid identifiers`` identifier =
 let typeDeclSamples : obj[] seq =
     let samples : obj[] seq = seq {
         yield [|"guid"; GUID |> PrimitiveType|]
+        yield [|
+            "choice+result*|*Ok*:*string*|*Error"
+            ChoiceType {
+                Identifier = "result"
+                Cases = Map.ofList [
+                    "Ok", Some (PrimitiveType String)
+                    "Error", None
+                ]
+            }|]
         yield [|"record+User*{*ID*:*guid*}*"; {Identifier="User";Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
         yield [|"record+User*{*ID*:*guid*;*}*"; {Identifier="User";Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
         yield [|
@@ -127,7 +136,7 @@ let typeDeclSamples : obj[] seq =
             }
         |]
         yield [|
-            "record+User*{*things*:*map+of+guid+by+int*}*"
+            "record+User*{*things*:*map+of+guid+to+int*}*"
             RecordType {
                 Identifier = "User"
                 Fields = Map.ofList [
@@ -135,8 +144,31 @@ let typeDeclSamples : obj[] seq =
                     CollectionType (
                         Map (
                             GUID,
-                            PrimitiveType Integer
+                            Integer |> PrimitiveType
                         ))
+                ]
+            }
+        |]
+        yield [|
+            "record+User*{*things*:*map+of+guid+to+list+of+list+of+int*}*"
+            RecordType {
+                Identifier = "User"
+                Fields = Map.ofList [
+                    "things",
+                    CollectionType (
+                        Map (
+                            GUID,
+                            CollectionType (
+                                List(
+                                    CollectionType (
+                                        List(
+                                            PrimitiveType Integer
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
                 ]
             }
         |]
@@ -151,7 +183,7 @@ let typeDeclSamples : obj[] seq =
             }
         |]
         yield [|
-            "record+User*{*ID*:*guid*;*Name*:*STRING*;*things*:*map+of+guid+by+int}*"
+            "record+User*{*ID*:*guid*;*Name*:*STRING*;*things*:*map+of+guid+to+int}*"
             RecordType {
                 Identifier = "User"
                 Fields = Map.ofList [
@@ -161,6 +193,22 @@ let typeDeclSamples : obj[] seq =
                         Map (
                             GUID,
                             Integer |> PrimitiveType
+                        )
+                    )
+                ]
+            }
+        |]
+        yield [|
+            "record+User*{*ID*:*guid*;*Name*:*someNameSpace.someType*;*things*:*map+of+int+to+user}*"
+            RecordType {
+                Identifier = "User"
+                Fields = Map.ofList [
+                    "ID",GUID |> PrimitiveType
+                    "Name", ["someNameSpace"; "someType"] |> QualifiedIdentifier |> UnresolvedTypeRef
+                    "things", CollectionType (
+                        Map (
+                            Integer,
+                            "user" |> Identifier |> UnresolvedTypeRef
                         )
                     )
                 ]

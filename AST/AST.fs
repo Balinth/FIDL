@@ -12,6 +12,13 @@ type Primitive =
 // TODO correctly constrained value type eg string50, only alphabetical or _ first char etc
 type Identifier = string
 
+type QualifiedIdentifier = string list
+
+type UnresolvedTypeRef =
+    | Identifier of Identifier
+    | QualifiedIdentifier of QualifiedIdentifier
+
+
 type Collection =
     | List of FIDLType
     | Map of key:Primitive * value:FIDLType
@@ -31,6 +38,7 @@ and FIDLType =
     | CollectionType of Collection
     | RecordType of Record
     | ChoiceType of Choice
+    | UnresolvedTypeRef of UnresolvedTypeRef
 
 type FIDLFunction = {
     Identifier: Identifier
