@@ -50,11 +50,11 @@ type FIDLFunction = {
 }
 
 type FIDLNamespace = {
-    Identifier : Identifier
+    Identifier : QualifiedIdentifier
     Children: FIDL list
 }
 
 and FIDL =
-    | FIDLType of FIDLType
+    | TypeDecl of TypeDecl
     | FIDLFunction of FIDLFunction
     | FIDLNamespace of FIDLNamespace

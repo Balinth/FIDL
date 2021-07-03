@@ -13,24 +13,27 @@ open FParsec
 // whitesapce: ' ', '\t', '\r', "\r\n", '\n'
 let whiteSpacePermutations (str:string) =
     let optionalSplit = str.Split('*')
-    seq {
-        String.Join("", optionalSplit)
-        String.Join(" ", optionalSplit)
-        String.Join("\t", optionalSplit)
-        String.Join("\r", optionalSplit)
-        String.Join("\n", optionalSplit)
-        String.Join("\r\n", optionalSplit)
-    }
-    |> Seq.collect (fun s ->
-        let mandatorySplit = s.Split('+')
+    if optionalSplit.Length < 2
+    then seq {str}
+    else
         seq {
-            String.Join(" ", mandatorySplit)
-            String.Join("\t", mandatorySplit)
-            String.Join("\r", mandatorySplit)
-            String.Join("\n", mandatorySplit)
-            String.Join("\r\n", mandatorySplit)
+            String.Join("", optionalSplit)
+            String.Join(" ", optionalSplit)
+            String.Join("\t", optionalSplit)
+            String.Join("\r", optionalSplit)
+            String.Join("\n", optionalSplit)
+            String.Join("\r\n", optionalSplit)
         }
-    )
+        |> Seq.collect (fun s ->
+            let mandatorySplit = s.Split('+')
+            seq {
+                String.Join(" ", mandatorySplit)
+                String.Join("\t", mandatorySplit)
+                String.Join("\r", mandatorySplit)
+                String.Join("\n", mandatorySplit)
+                String.Join("\r\n", mandatorySplit)
+            }
+        )
     
 
 [<Fact>]
@@ -141,7 +144,7 @@ let ``Should parse valid FIDL types`` typeDecl expected=
 let typeDeclSamples : obj[] seq =
     let samples : obj[] seq = seq {
         yield [|
-            "choice+result*|*Ok*:*string*|*Error"
+            "choice+result*=*|*Ok*:*string*|*Error"
             ChoiceType {
                 Identifier = "result"
                 Cases = Map.ofList [
@@ -265,3 +268,154 @@ let ``Should parse valid user type declarations`` typeDecl expected=
         failwith (sprintf "%A" result)
     | Success (actual,_,_) ->
         Assert.Equal (actual, expected)
+
+
+let parserRemainderPairs : obj[] seq =
+    seq {
+        yield [|pPrimitive; "guid "; " "|]
+        yield [|pTypeDecl; "choice Result = | Ok | Error "; " "|]
+        yield [|pTypeDecl; "record User {Name: string; ID: guid} "; " "|]
+        yield [|pNamespace |>> id; "namespace EmptyNS {} "; " "|] // |>> id is required due to some type casting quirk with parsers using forwarded refs
+        yield [|pFIDLType |>> id; "string "; " "|] // |>> id is required due to some type casting quirk with parsers using forwarded refs
+        yield [|pFIDLType |>> id; "list of string "; " "|] // |>> id is required due to some type casting quirk with parsers using forwarded refs
+        yield [|pFIDLType |>> id; "map of string to list of guid "; " "|] // |>> id is required due to some type casting quirk with parsers using forwarded refs
+    }
+
+[<Theory>]
+[<MemberData(nameof parserRemainderPairs)>]
+let ``Parsers should only consume exactly the required characters`` parser input expectedRemainder =
+    // arrange
+    let sut =
+        parser
+        >>. manyChars anyChar
+        |> run
+
+    // act
+    let result =
+        sut input
+
+    // assert
+    match result with
+    | Success (remainingChars,_,_) when remainingChars = expectedRemainder -> ()
+    | _ -> failwith (sprintf "%A" result)
+
+let fidlNamespaces : obj[] seq =
+    let samples : obj[] seq = seq {
+        yield [|
+            "namespace+Empty*{*}*"
+            {
+                Identifier = ["Empty"]
+                Children = []
+            }
+        |]
+        
+        yield [|
+            "namespace+NotEmpty*{*choice+result*=*|*Ok*:*string*|*Error*;*record+User*{*ID*:*guid*;*Name*:*STRING*}*;*namespace+Empty*{*}*}*"
+            {
+                Identifier = ["NotEmpty"]
+                Children = [
+                    ChoiceType {
+                        Identifier = "result"
+                        Cases = Map.ofList [
+                            "Ok", Some (PrimitiveType String)
+                            "Error", None
+                        ]
+                    } |> TypeDecl
+                    RecordType {
+                        Identifier = "User"
+                        Fields = Map.ofList [
+                            "ID", GUID |> PrimitiveType
+                            "Name", String |> PrimitiveType
+                        ]
+                    } |> TypeDecl
+                    {
+                        Identifier = ["Empty"]
+                        Children = []
+                    } |> FIDLNamespace
+                ]
+            }
+        |]
+        
+        yield [|
+            "namespace+NotEmpty*{*choice+result*=*|*Ok*:*string*|*Error*\r\n*record+User*{*ID*:*guid*;*Name*:*STRING*}*\r*namespace+Empty*{*}*}*"
+            {
+                Identifier = ["NotEmpty"]
+                Children = [
+                    ChoiceType {
+                        Identifier = "result"
+                        Cases = Map.ofList [
+                            "Ok", Some (PrimitiveType String)
+                            "Error", None
+                        ]
+                    } |> TypeDecl
+                    RecordType {
+                        Identifier = "User"
+                        Fields = Map.ofList [
+                            "ID", GUID |> PrimitiveType
+                            "Name", String |> PrimitiveType
+                        ]
+                    } |> TypeDecl
+                    {
+                        Identifier = ["Empty"]
+                        Children = []
+                    } |> FIDLNamespace
+                ]
+            }
+        |]
+    }
+    samples
+    |> Seq.collect (fun objs ->
+        whiteSpacePermutations (objs.[0] :?> string)
+        |> Seq.map (fun permutation -> [|permutation; objs.[1]|])
+    )
+
+
+[<Theory>]
+[<MemberData(nameof fidlNamespaces)>]
+let ``Should parse valid FIDL namespaces`` namespaceDecl expected=
+    // arrange
+    let sut =
+        run pNamespace
+    // act
+    let result =
+        sut namespaceDecl
+
+    // assert
+    match result with
+    | Failure _ ->
+        failwith (sprintf "%A" result)
+    | Success (actual,_,_) ->
+        Assert.Equal (actual, expected)
+
+
+
+let invalidNamespaces : obj[] seq =
+    let samples : obj[] seq = seq {
+        yield [|
+            "namespace+Empty*{*"
+            "namespace+NotEmpty*{*choice+result*=*|*Ok*:*string*|*Error record+User*{*ID*:*guid*;*Name*:*STRING*}*;*namespace+Empty*{*}*}*"
+            //                                                         ^ missing separator
+        |]
+    }
+    samples
+    |> Seq.collect (fun objs ->
+        whiteSpacePermutations (objs.[0] :?> string)
+        |> Seq.map (fun permutation -> [|permutation|])
+    )
+
+[<Theory>]
+[<MemberData(nameof invalidNamespaces)>]
+let ``Should reject invalid FIDL namespaces`` namespaceDecl=
+    // arrange
+    let sut =
+        run pNamespace
+
+    // act
+    let result =
+        sut namespaceDecl
+
+    // assert
+    match result with
+    | Failure _ -> ()
+    | Success (actual,_,_) ->
+        failwith (sprintf "%A" result)

@@ -15,6 +15,14 @@ let (.>.>.) a b = a .>> (spaces1) .>>. b
 let (>.>.) a b = a .>> (spaces1) >>. b
 let (.>.>) a b = a .>> (spaces1) .>> b
 
+#if DEBUG
+let breakPoint (parser : Parser<_,_>) stream =
+    parser stream
+
+let spaces = breakPoint spaces
+
+#endif
+
 let pCurlyBraces p =
     pchar '{'
     >. p
@@ -114,9 +122,12 @@ let pTypeDecl =
     
     let pOptTypeAssignment =
         pIdentifier
-        .>. opt (
-                (pchar ':')
-                >. pFIDLType)
+        .>>. opt (
+                spaces
+                >>. (pchar ':')
+                >. pFIDLType
+                |> attempt
+        )
 
     let pRecordType =
         pstringCI "record"
@@ -132,14 +143,21 @@ let pTypeDecl =
             } |> RecordType
         )
 
+    let pChoiceCase = pOptTypeAssignment
+
+    let pChoiceDelim =
+        (spaces
+        >>. pchar '|'
+        .>> spaces)
+        |> attempt
+        
+
     let pChoiceType =
         pstringCI "choice"
         >.>. pIdentifier
-        .>. many1 (
-            pchar '|'
-            >. pOptTypeAssignment
-            .>> spaces
-        )
+        .> pchar '='
+        .> pchar '|'
+        .>. sepBy1 pChoiceCase pChoiceDelim
         |>> (fun (identifier, cases) ->
             {Identifier=identifier;Cases=Map.ofList cases}
             |> ChoiceType)
@@ -149,14 +167,27 @@ let pTypeDecl =
         pChoiceType
     ]
 
-let pFieldDecl =
-    pIdentifier
-    .> (pchar ':')
-    .>. (pPrimitive)
+let pNamespace : CharStream<unit> -> Reply<FIDLNamespace> =
+    let pNamespace, pRef = createParserForwardedToRef()
+
+    let contentsParser =
+        pNamespace |>> FIDLNamespace
+        <|> (pTypeDecl |>> TypeDecl)
+
+    pRef :=
+        pstringCI "namespace"
+        >.>. pQualifiedIdentifier
+        .>. (pCurlyBraces (semicolonOrNewline sepEndBy (breakPoint contentsParser)))
+        |>> (fun (identifier,contents) -> {Identifier = identifier; Children = contents})
+
+    pNamespace
 
 let test1 =
     run pPrimitive "guid"
 
 let test2 =
     run pIdentifier "lala12_43kaka"
+
+let test3 =
+    run pNamespace "namespace lala {}"
     
