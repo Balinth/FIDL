@@ -19,7 +19,8 @@ let (.>.>) a b = a .>> (spaces1) .>> b
 let breakPoint (parser : Parser<_,_>) stream =
     parser stream
 
-let spaces = breakPoint spaces
+// use this for debug purposes like so:
+//let spaces = breakPoint spaces
 
 #endif
 
@@ -167,7 +168,7 @@ let pTypeDecl =
         pChoiceType
     ]
 
-let pNamespace : CharStream<unit> -> Reply<FIDLNamespace> =
+let pNamespace =
     let pNamespace, pRef = createParserForwardedToRef()
 
     let contentsParser =
@@ -177,7 +178,7 @@ let pNamespace : CharStream<unit> -> Reply<FIDLNamespace> =
     pRef :=
         pstringCI "namespace"
         >.>. pQualifiedIdentifier
-        .>. (pCurlyBraces (semicolonOrNewline sepEndBy (breakPoint contentsParser)))
+        .>. (pCurlyBraces (semicolonOrNewline sepEndBy contentsParser))
         |>> (fun (identifier,contents) -> {Identifier = identifier; Children = contents})
 
     pNamespace
