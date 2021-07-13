@@ -14,6 +14,10 @@ type Identifier = string
 
 type QualifiedIdentifier = string list
 
+module QualifiedIdentifier =
+    let stringize (qualifiedIdentifier : QualifiedIdentifier) =
+        System.String.Join(".", qualifiedIdentifier)
+
 type UnresolvedTypeRef =
     | Identifier of Identifier
     | QualifiedIdentifier of QualifiedIdentifier
@@ -29,7 +33,7 @@ and Choice = {
 }
 
 and Record = {
-    Identifier: Identifier
+    Identifier: QualifiedIdentifier
     Fields: Map<Identifier, FIDLType>
 }
 

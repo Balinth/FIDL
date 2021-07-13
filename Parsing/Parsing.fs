@@ -24,6 +24,22 @@ let breakPoint (parser : Parser<_,_>) stream =
 
 #endif
 
+type ParserState = {
+    Types : Set<QualifiedIdentifier>
+    Scope : Identifier list list
+}
+
+module ParserState =
+    let empty = {
+        Types = Set.empty<QualifiedIdentifier>
+        Scope = []
+    }
+
+    let ensureUnique state qualifiedIdentifier =
+        if state.Types.Contains(qualifiedIdentifier)
+        then false
+        else true
+
 let pCurlyBraces p =
     pchar '{'
     >. p
@@ -115,6 +131,25 @@ let pFIDLType =
 
 let pTypeDecl =
     
+    let addTypeParserState (p: Parser<Identifier, ParserState>) : Parser<QualifiedIdentifier,ParserState> =
+        p
+        .>>. getUserState
+        >>= (fun (identifier, state) ->
+            let qualifiedIdentifier =
+                identifier :: 
+                List.concat state.Scope
+            match state.Types.Contains qualifiedIdentifier with
+            | false ->
+                preturn qualifiedIdentifier
+                .>> setUserState {
+                    state with Types = Set.add qualifiedIdentifier state.Types
+                }
+            | true ->
+                QualifiedIdentifier.stringize qualifiedIdentifier
+                |> sprintf "The qualified typename '%s' is already taken"
+                |> fail
+        )
+
     let pTypeAssignment =
         pIdentifier
         .> (pchar ':')
@@ -133,6 +168,7 @@ let pTypeDecl =
     let pRecordType =
         pstringCI "record"
         >.>. pIdentifier
+        |> addTypeParserState
         .>. (pCurlyBraces (
                 semicolonOrNewline sepEndBy1 pTypeAssignment
             )
@@ -168,7 +204,42 @@ let pTypeDecl =
         pChoiceType
     ]
 
-let pNamespace =
+let addScopeParserState (p: Parser<QualifiedIdentifier, ParserState>) : Parser<QualifiedIdentifier,ParserState> =
+    p
+    .>>. getUserState
+    >>= (fun (parsedNamespace, state) ->
+        let newScope = 
+            parsedNamespace :: state.Scope
+        preturn parsedNamespace
+        .>> setUserState {
+            state with Scope = newScope
+        }
+    )
+
+let pNamespace : Parser<FIDLNamespace, ParserState> =
+    
+    let pushScope p =
+        p
+        .>>. getUserState
+        >>= (fun (scopeStep,state) ->
+            let newScope = scopeStep :: state.Scope
+            preturn scopeStep
+            .>> setUserState {
+                state with Scope = newScope
+            }
+        )
+        
+    let popScope p =
+        p
+        .>> updateUserState (fun state ->
+            match state.Scope with
+            | [] ->
+                failwith "We should have never reached this! the parser tried to pop more scopes than were pushed."
+            | head::tail ->
+                {state with Scope = tail}
+        )
+
+    
     let pNamespace, pRef = createParserForwardedToRef()
 
     let contentsParser =
@@ -178,17 +249,11 @@ let pNamespace =
     pRef :=
         pstringCI "namespace"
         >.>. pQualifiedIdentifier
-        .>. (pCurlyBraces (semicolonOrNewline sepEndBy contentsParser))
-        |>> (fun (identifier,contents) -> {Identifier = identifier; Children = contents})
+        |> pushScope
+        //|> addScopeParserState
+        .>. (pCurlyBraces (contentsParser .>> spaces |> many))
+        .>>. getUserState
+        |>> (fun ((identifier,contents), state) -> {Identifier = List.concat state.Scope; Children = contents})
+        |> popScope
 
     pNamespace
-
-let test1 =
-    run pPrimitive "guid"
-
-let test2 =
-    run pIdentifier "lala12_43kaka"
-
-let test3 =
-    run pNamespace "namespace lala {}"
-    

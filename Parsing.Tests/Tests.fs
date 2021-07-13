@@ -45,7 +45,8 @@ let ``Should parse all primitive types`` () =
         |> Seq.cast<Primitive>
         |> Seq.map primitiveTokenToString
 
-    let sut = run pPrimitive
+    let sut =
+        runParserOnString pPrimitive ParserState.empty "Test string"
 
     // act
     let results =
@@ -70,7 +71,8 @@ let ``Should parse all primitive types`` () =
 [<InlineData("__Aafdas_id__D__2432_DA423")>]
 let ``Should correctly parse valid identifiers`` identifier =
     // arrange
-    let sut = run pIdentifier
+    let sut =
+        runParserOnString pIdentifier ParserState.empty "Test string"
 
     // act
     let result =
@@ -99,7 +101,8 @@ let ``Should correctly parse valid identifiers`` identifier =
 [<InlineData("+__Aafdas_id__D__2432_DA423")>]
 let ``Should reject invalid identifiers`` identifier =
     // arrange
-    let sut = run pIdentifier
+    let sut =
+        runParserOnString pIdentifier ParserState.empty "Test string"
 
     // act
     let result =
@@ -128,7 +131,8 @@ let fidlTypes : obj[] seq =
 let ``Should parse valid FIDL types`` typeDecl expected=
     // arrange
     let sut =
-        run pFIDLType
+        runParserOnString pFIDLType ParserState.empty "Test string"
+
     // act
     let result =
         sut typeDecl
@@ -152,12 +156,12 @@ let typeDeclSamples : obj[] seq =
                     "Error", None
                 ]
             }|]
-        yield [|"record+User*{*ID*:*guid*}*"; {Identifier="User";Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
-        yield [|"record+User*{*ID*:*guid*;*}*"; {Identifier="User";Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
+        yield [|"record+User*{*ID*:*guid*}*"; {Identifier=["User"];Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
+        yield [|"record+User*{*ID*:*guid*;*}*"; {Identifier=["User"];Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
         yield [|
             "record+User*{*ID*:*list+of+guid*}*"
             RecordType {
-                Identifier = "User"
+                Identifier = ["User"]
                 Fields = Map.ofList [
                     "ID",
                     CollectionType (
@@ -169,7 +173,7 @@ let typeDeclSamples : obj[] seq =
         yield [|
             "record+User*{*things*:*map+of+guid+to+int*}*"
             RecordType {
-                Identifier = "User"
+                Identifier = ["User"]
                 Fields = Map.ofList [
                     "things",
                     CollectionType (
@@ -183,7 +187,7 @@ let typeDeclSamples : obj[] seq =
         yield [|
             "record+User*{*things*:*map+of+guid+to+list+of+list+of+int*}*"
             RecordType {
-                Identifier = "User"
+                Identifier = ["User"]
                 Fields = Map.ofList [
                     "things",
                     CollectionType (
@@ -206,7 +210,7 @@ let typeDeclSamples : obj[] seq =
         yield [|
             "record+User*{*ID*:*guid*;*Name*:*STRING*}*"
             RecordType {
-                Identifier = "User"
+                Identifier = ["User"]
                 Fields = Map.ofList [
                     "ID", GUID |> PrimitiveType
                     "Name", String |> PrimitiveType
@@ -216,7 +220,7 @@ let typeDeclSamples : obj[] seq =
         yield [|
             "record+User*{*ID*:*guid*;*Name*:*STRING*;*things*:*map+of+guid+to+int}*"
             RecordType {
-                Identifier = "User"
+                Identifier = ["User"]
                 Fields = Map.ofList [
                     "ID",GUID |> PrimitiveType
                     "Name", String |> PrimitiveType
@@ -232,7 +236,7 @@ let typeDeclSamples : obj[] seq =
         yield [|
             "record+User*{*ID*:*guid*;*Name*:*someNameSpace.someType*;*things*:*map+of+int+to+user}*"
             RecordType {
-                Identifier = "User"
+                Identifier = ["User"]
                 Fields = Map.ofList [
                     "ID",GUID |> PrimitiveType
                     "Name", ["someNameSpace"; "someType"] |> QualifiedIdentifier |> UnresolvedTypeRef
@@ -257,7 +261,8 @@ let typeDeclSamples : obj[] seq =
 let ``Should parse valid user type declarations`` typeDecl expected=
     // arrange
     let sut =
-        run pTypeDecl
+        runParserOnString pTypeDecl ParserState.empty "Test string"
+
     // act
     let result =
         sut typeDecl
@@ -285,10 +290,11 @@ let parserRemainderPairs : obj[] seq =
 [<MemberData(nameof parserRemainderPairs)>]
 let ``Parsers should only consume exactly the required characters`` parser input expectedRemainder =
     // arrange
-    let sut =
+    let p =
         parser
         >>. manyChars anyChar
-        |> run
+    let sut =
+        runParserOnString p ParserState.empty "Test string"
 
     // act
     let result =
@@ -302,6 +308,20 @@ let ``Parsers should only consume exactly the required characters`` parser input
 let fidlNamespaces : obj[] seq =
     let samples : obj[] seq = seq {
         yield [|
+            "namespace+NotEmpty*{*record+User*{*ID*:*guid*}*}*"
+            {
+                Identifier = ["NotEmpty"]
+                Children = [
+                    RecordType {
+                        Identifier = ["User"; "NotEmpty"]
+                        Fields = Map.ofList [
+                            "ID", GUID |> PrimitiveType
+                        ]
+                    } |> TypeDecl
+                ]
+            }
+        |]
+        yield [|
             "namespace+Empty*{*}*"
             {
                 Identifier = ["Empty"]
@@ -310,7 +330,29 @@ let fidlNamespaces : obj[] seq =
         |]
         
         yield [|
-            "namespace+NotEmpty*{*choice+result*=*|*Ok*:*string*|*Error*;*record+User*{*ID*:*guid*;*Name*:*STRING*}*;*namespace+Empty*{*}*}*"
+            "namespace+Empty*{*namespace+Inner*{*namespace+InnerInner*{*}*}*namespace+Inner2*{*}*}*"
+            {
+                Identifier = ["Empty"]
+                Children = [
+                    {
+                        Identifier = ["Inner";"Empty"]
+                        Children = [
+                            {
+                                Identifier = ["InnerInner";"Inner";"Empty"]
+                                Children = []
+                            } |> FIDLNamespace
+                        ]
+                    } |> FIDLNamespace
+                    {
+                        Identifier = ["Inner2";"Empty"]
+                        Children = []
+                    } |> FIDLNamespace
+                ]
+            }
+        |]
+        
+        yield [|
+            "namespace+NotEmpty*{*choice+result*=*|*Ok*:*string*|*Error+record+User*{*ID*:*guid*;*Name*:*STRING*}*namespace+Empty*{*}*}*"
             {
                 Identifier = ["NotEmpty"]
                 Children = [
@@ -322,14 +364,14 @@ let fidlNamespaces : obj[] seq =
                         ]
                     } |> TypeDecl
                     RecordType {
-                        Identifier = "User"
+                        Identifier = ["User"; "NotEmpty"]
                         Fields = Map.ofList [
                             "ID", GUID |> PrimitiveType
                             "Name", String |> PrimitiveType
                         ]
                     } |> TypeDecl
                     {
-                        Identifier = ["Empty"]
+                        Identifier = ["Empty"; "NotEmpty"]
                         Children = []
                     } |> FIDLNamespace
                 ]
@@ -349,14 +391,14 @@ let fidlNamespaces : obj[] seq =
                         ]
                     } |> TypeDecl
                     RecordType {
-                        Identifier = "User"
+                        Identifier = ["User"; "NotEmpty"]
                         Fields = Map.ofList [
                             "ID", GUID |> PrimitiveType
                             "Name", String |> PrimitiveType
                         ]
                     } |> TypeDecl
                     {
-                        Identifier = ["Empty"]
+                        Identifier = ["Empty"; "NotEmpty"]
                         Children = []
                     } |> FIDLNamespace
                 ]
@@ -375,7 +417,7 @@ let fidlNamespaces : obj[] seq =
 let ``Should parse valid FIDL namespaces`` namespaceDecl expected=
     // arrange
     let sut =
-        run pNamespace
+        runParserOnString pNamespace ParserState.empty "Test string"
     // act
     let result =
         sut namespaceDecl
@@ -385,9 +427,7 @@ let ``Should parse valid FIDL namespaces`` namespaceDecl expected=
     | Failure _ ->
         failwith (sprintf "%A" result)
     | Success (actual,_,_) ->
-        Assert.Equal (actual, expected)
-
-
+        Assert.Equal (expected, actual)
 
 let invalidNamespaces : obj[] seq =
     let samples : obj[] seq = seq {
@@ -408,7 +448,7 @@ let invalidNamespaces : obj[] seq =
 let ``Should reject invalid FIDL namespaces`` namespaceDecl=
     // arrange
     let sut =
-        run pNamespace
+        runParserOnString pNamespace ParserState.empty "Test string"
 
     // act
     let result =
