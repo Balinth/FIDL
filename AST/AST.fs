@@ -37,6 +37,12 @@ and Record = {
     Fields: Map<Identifier, FIDLType>
 }
 
+and Function = {
+    Identifier: QualifiedIdentifier
+    ReturnType: FIDLType
+    Parameters: (Identifier* FIDLType) list
+}
+
 and FIDLType =
     | PrimitiveType of Primitive
     | CollectionType of Collection
@@ -45,13 +51,7 @@ and FIDLType =
 and TypeDecl =
     | RecordType of Record
     | ChoiceType of Choice
-
-
-type FIDLFunction = {
-    Identifier: Identifier
-    ReturnType: FIDLType
-    Inputs: (Identifier* FIDLType) list
-}
+    | FunctionType of Function
 
 type FIDLNamespace = {
     Identifier : QualifiedIdentifier
@@ -60,5 +60,4 @@ type FIDLNamespace = {
 
 and FIDL =
     | TypeDecl of TypeDecl
-    | FIDLFunction of FIDLFunction
     | FIDLNamespace of FIDLNamespace

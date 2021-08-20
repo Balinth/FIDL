@@ -156,6 +156,43 @@ let typeDeclSamples : obj[] seq =
                     "Error", None
                 ]
             }|]
+        yield [|
+            "choice+result*=*|*Ok*:*string*|*Error*:*string"
+            ChoiceType {
+                Identifier = ["result"]
+                Cases = Map.ofList [
+                    "Ok", Some (PrimitiveType String)
+                    "Error", Some (PrimitiveType String)
+                ]
+            }|]
+        yield [|
+            "function+Log*(*message*:*string*)*->*unit"
+            FunctionType {
+                Identifier = ["Log"]
+                Parameters = ["message", PrimitiveType String]
+                ReturnType = PrimitiveType Unit
+            }|]
+        yield [|
+            "function+GetTemplate*(*)*->*string"
+            FunctionType {
+                Identifier = ["GetTemplate"]
+                Parameters = []
+                ReturnType = PrimitiveType String
+            }|]
+        yield [|
+            "function+GetTemplateByType*(*type*:*string)*->*string"
+            FunctionType {
+                Identifier = ["GetTemplateByType"]
+                Parameters = ["type", PrimitiveType String]
+                ReturnType = PrimitiveType String
+            }|]
+        yield [|
+            "function+GetTemplateGenerator*(*type*:*string*,*parameter*:*string*)*->*string"
+            FunctionType {
+                Identifier = ["GetTemplateGenerator"]
+                Parameters = ["type", PrimitiveType String; "parameter", PrimitiveType String]
+                ReturnType = PrimitiveType String
+            }|]
         yield [|"record+User*{*ID*:*guid*}*"; {Identifier=["User"];Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
         yield [|"record+User*{*ID*:*guid*;*}*"; {Identifier=["User"];Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
         yield [|
@@ -280,6 +317,7 @@ let parserRemainderPairs : obj[] seq =
         yield [|pPrimitive; "guid "; " "|]
         yield [|pTypeDecl; "choice Result = | Ok | Error "; " "|]
         yield [|pTypeDecl; "record User {Name: string; ID: guid} "; " "|]
+        yield [|pTypeDecl; "function GetUser (id: guid) -> User "; " "|]
         yield [|pNamespace |>> id; "namespace EmptyNS {} "; " "|] // |>> id is required due to some type casting quirk with parsers using forwarded refs
         yield [|pFIDLType |>> id; "string "; " "|] // |>> id is required due to some type casting quirk with parsers using forwarded refs
         yield [|pFIDLType |>> id; "list of string "; " "|] // |>> id is required due to some type casting quirk with parsers using forwarded refs

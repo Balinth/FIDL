@@ -44,7 +44,12 @@ let pCurlyBraces p =
     pchar '{'
     >. p
     .> pchar '}'
-
+    
+let pBraces p =
+    pchar '('
+    >. p
+    .> pchar ')'
+    
 let pNonNewlineSpace =
     pchar ' '
     <|> pchar '\t'
@@ -87,7 +92,7 @@ let pIdentifier =
     |>> (fun (c,str) -> c.ToString() + str)
 
 let pQualifiedIdentifier =
-    sepBy1 (pIdentifier .>> spaces) (pchar '.' .>> spaces)
+    sepBy1 pIdentifier (attempt (spaces .>> pchar '.' .>> spaces))
 
 let pFIDLType =
     let pFIDLType, pRef = createParserForwardedToRef()
@@ -130,8 +135,8 @@ let pFIDLType =
     pFIDLType
 
 let pTypeDecl =
-    
-    let addTypeParserState (p: Parser<Identifier, ParserState>) : Parser<QualifiedIdentifier,ParserState> =
+
+    let addQualifiedIdentifierToState (p: Parser<Identifier, ParserState>) : Parser<QualifiedIdentifier,ParserState> =
         p
         .>>. getUserState
         >>= (fun (identifier, state) ->
@@ -154,8 +159,7 @@ let pTypeDecl =
         pIdentifier
         .> (pchar ':')
         .>. pFIDLType
-        .>> (many pNonNewlineSpace)
-    
+
     let pOptTypeAssignment =
         pIdentifier
         .>>. opt (
@@ -168,7 +172,7 @@ let pTypeDecl =
     let pRecordType =
         pstringCI "record"
         >.>. pIdentifier
-        |> addTypeParserState
+        |> addQualifiedIdentifierToState
         .>. (pCurlyBraces (
                 semicolonOrNewline sepEndBy1 pTypeAssignment
             )
@@ -192,7 +196,7 @@ let pTypeDecl =
     let pChoiceType =
         pstringCI "choice"
         >.>. pIdentifier
-        |> addTypeParserState
+        |> addQualifiedIdentifierToState
         .> pchar '='
         .> pchar '|'
         .>. sepBy1 pChoiceCase pChoiceDelim
@@ -200,9 +204,30 @@ let pTypeDecl =
             {Identifier=identifier;Cases=Map.ofList cases}
             |> ChoiceType)
 
+    
+    let pFunctionType =
+        pstringCI "function"
+        >.>. pIdentifier
+        |> addQualifiedIdentifierToState
+        .>. (pBraces (
+                sepEndBy (pTypeAssignment .>> spaces) (pchar ',' .>> spaces)
+            )
+        )
+        .> pstring "->"
+        .>. pFIDLType
+    
+        |>> (fun ((identifier,parameters),returnType) ->
+            {
+                Identifier = identifier
+                Parameters = parameters
+                ReturnType = returnType
+            } |> FunctionType
+        )
+
     choice [
         pRecordType
         pChoiceType
+        pFunctionType
     ]
 
 let addScopeParserState (p: Parser<QualifiedIdentifier, ParserState>) : Parser<QualifiedIdentifier,ParserState> =
