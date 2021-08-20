@@ -192,6 +192,7 @@ let pTypeDecl =
     let pChoiceType =
         pstringCI "choice"
         >.>. pIdentifier
+        |> addTypeParserState
         .> pchar '='
         .> pchar '|'
         .>. sepBy1 pChoiceCase pChoiceDelim

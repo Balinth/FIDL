@@ -16,7 +16,7 @@ type QualifiedIdentifier = string list
 
 module QualifiedIdentifier =
     let stringize (qualifiedIdentifier : QualifiedIdentifier) =
-        System.String.Join(".", qualifiedIdentifier)
+        System.String.Join(".", List.rev qualifiedIdentifier)
 
 type UnresolvedTypeRef =
     | Identifier of Identifier
@@ -28,7 +28,7 @@ type Collection =
     | Map of key:Primitive * value:FIDLType
 
 and Choice = {
-    Identifier: Identifier
+    Identifier: QualifiedIdentifier
     Cases: Map<Identifier,FIDLType option>
 }
 

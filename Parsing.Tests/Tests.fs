@@ -150,7 +150,7 @@ let typeDeclSamples : obj[] seq =
         yield [|
             "choice+result*=*|*Ok*:*string*|*Error"
             ChoiceType {
-                Identifier = "result"
+                Identifier = ["result"]
                 Cases = Map.ofList [
                     "Ok", Some (PrimitiveType String)
                     "Error", None
@@ -328,6 +328,22 @@ let fidlNamespaces : obj[] seq =
                 Children = []
             }
         |]
+        yield [|
+            "namespace+outer*{*record+User*{*ID*:*string*}*namespace+inner*{*record+User*{*ID*:*string*}*}*}"
+            {
+                Identifier = ["outer"]
+                Children =
+                      [TypeDecl
+                         (RecordType { Identifier = ["User"; "outer"]
+                                       Fields = Map.ofList [("ID", PrimitiveType String)] });
+                       FIDLNamespace
+                         { Identifier = ["inner"; "outer"]
+                           Children =
+                                     [TypeDecl
+                                        (RecordType
+                                           { Identifier = ["User"; "inner"; "outer"]
+                                             Fields = Map.ofList [("ID", PrimitiveType String)] })] }] }
+        |]
         
         yield [|
             "namespace+Empty*{*namespace+Inner*{*namespace+InnerInner*{*}*}*namespace+Inner2*{*}*}*"
@@ -357,7 +373,7 @@ let fidlNamespaces : obj[] seq =
                 Identifier = ["NotEmpty"]
                 Children = [
                     ChoiceType {
-                        Identifier = "result"
+                        Identifier = ["result"; "NotEmpty"]
                         Cases = Map.ofList [
                             "Ok", Some (PrimitiveType String)
                             "Error", None
@@ -384,7 +400,7 @@ let fidlNamespaces : obj[] seq =
                 Identifier = ["NotEmpty"]
                 Children = [
                     ChoiceType {
-                        Identifier = "result"
+                        Identifier = ["result"; "NotEmpty"]
                         Cases = Map.ofList [
                             "Ok", Some (PrimitiveType String)
                             "Error", None
@@ -457,5 +473,51 @@ let ``Should reject invalid FIDL namespaces`` namespaceDecl=
     // assert
     match result with
     | Failure _ -> ()
+    | Success (actual,_,_) ->
+        failwith (sprintf "%A" result)
+
+
+let duplicateDefinitions : obj[] seq =
+    let samples : obj[] seq = seq {
+        yield [|
+            "namespace+duplicate*{*record+User*{*ID*:*string*}*record+User*{*ID*:*string*}*}*"
+            Set.ofList [
+                ["User"; "duplicate"]
+            ]
+        |]
+        yield [|
+            "namespace+duplicate*{*choice+Result*=*|*Ok*|*Error+record+Result*{*ID*:*string*}*}*"
+            Set.ofList [
+                ["Result"; "duplicate"]
+            ]
+        |]
+        yield [|
+            "namespace+duplicate*{*choice+Result*=*|*Ok*|*Error+choice+Result*=*|*Ok*|*Error*}*"
+            Set.ofList [
+                ["Result"; "duplicate"]
+            ]
+        |]
+    }
+    samples
+    |> Seq.collect (fun objs ->
+        whiteSpacePermutations (objs.[0] :?> string)
+        |> Seq.map (fun permutation -> [|permutation; objs.[1]|])
+    )
+
+[<Theory>]
+[<MemberData(nameof(duplicateDefinitions))>]
+let ``Should reject type definition with already taken qualified identifier`` namespaceDecl expectedIdentifiers=
+    // arrange
+    let sut =
+        runParserOnString pNamespace ParserState.empty "Test string"
+
+    // act
+    let result =
+        sut namespaceDecl
+
+    // assert
+    match result with
+    | Failure (msg,err,state) ->
+        Assert.Equal<Set<QualifiedIdentifier>>(state.Types, expectedIdentifiers)
     | Success (actual,_,_) ->
         failwith (sprintf "%A" result)
