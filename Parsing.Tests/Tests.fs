@@ -151,7 +151,7 @@ let typeDeclSamples : obj[] seq =
             "choice+result*=*|*Ok*:*string*|*Error"
             ChoiceType {
                 Identifier = ["result"]
-                Cases = Map.ofList [
+                Cases = [
                     "Ok", Some (PrimitiveType String)
                     "Error", None
                 ]
@@ -160,7 +160,7 @@ let typeDeclSamples : obj[] seq =
             "choice+result*=*|*Ok*:*string*|*Error*:*string"
             ChoiceType {
                 Identifier = ["result"]
-                Cases = Map.ofList [
+                Cases = [
                     "Ok", Some (PrimitiveType String)
                     "Error", Some (PrimitiveType String)
                 ]
@@ -193,13 +193,13 @@ let typeDeclSamples : obj[] seq =
                 Parameters = ["type", PrimitiveType String; "parameter", PrimitiveType String]
                 ReturnType = PrimitiveType String
             }|]
-        yield [|"record+User*{*ID*:*guid*}*"; {Identifier=["User"];Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
-        yield [|"record+User*{*ID*:*guid*;*}*"; {Identifier=["User"];Fields=Map.ofList ["ID",GUID |> PrimitiveType]} |> RecordType|]
+        yield [|"record+User*{*ID*:*guid*}*"; {Identifier=["User"];Fields=["ID",GUID |> PrimitiveType]} |> RecordType|]
+        yield [|"record+User*{*ID*:*guid*;*}*"; {Identifier=["User"];Fields=["ID",GUID |> PrimitiveType]} |> RecordType|]
         yield [|
             "record+User*{*ID*:*list+of+guid*}*"
             RecordType {
                 Identifier = ["User"]
-                Fields = Map.ofList [
+                Fields = [
                     "ID",
                     CollectionType (
                         List (
@@ -211,7 +211,7 @@ let typeDeclSamples : obj[] seq =
             "record+User*{*things*:*map+of+guid+to+int*}*"
             RecordType {
                 Identifier = ["User"]
-                Fields = Map.ofList [
+                Fields = [
                     "things",
                     CollectionType (
                         Map (
@@ -225,7 +225,7 @@ let typeDeclSamples : obj[] seq =
             "record+User*{*things*:*map+of+guid+to+list+of+list+of+int*}*"
             RecordType {
                 Identifier = ["User"]
-                Fields = Map.ofList [
+                Fields = [
                     "things",
                     CollectionType (
                         Map (
@@ -248,7 +248,7 @@ let typeDeclSamples : obj[] seq =
             "record+User*{*ID*:*guid*;*Name*:*STRING*}*"
             RecordType {
                 Identifier = ["User"]
-                Fields = Map.ofList [
+                Fields = [
                     "ID", GUID |> PrimitiveType
                     "Name", String |> PrimitiveType
                 ]
@@ -258,7 +258,7 @@ let typeDeclSamples : obj[] seq =
             "record+User*{*ID*:*guid*;*Name*:*STRING*;*things*:*map+of+guid+to+int}*"
             RecordType {
                 Identifier = ["User"]
-                Fields = Map.ofList [
+                Fields = [
                     "ID",GUID |> PrimitiveType
                     "Name", String |> PrimitiveType
                     "things", CollectionType (
@@ -274,7 +274,7 @@ let typeDeclSamples : obj[] seq =
             "record+User*{*ID*:*guid*;*Name*:*someNameSpace.someType*;*things*:*map+of+int+to+user}*"
             RecordType {
                 Identifier = ["User"]
-                Fields = Map.ofList [
+                Fields = [
                     "ID",GUID |> PrimitiveType
                     "Name", ["someNameSpace"; "someType"] |> QualifiedIdentifier |> UnresolvedTypeRef
                     "things", CollectionType (
@@ -352,7 +352,7 @@ let fidlNamespaces : obj[] seq =
                 Children = [
                     RecordType {
                         Identifier = ["User"; "NotEmpty"]
-                        Fields = Map.ofList [
+                        Fields = [
                             "ID", GUID |> PrimitiveType
                         ]
                     } |> TypeDecl
@@ -373,14 +373,14 @@ let fidlNamespaces : obj[] seq =
                 Children =
                       [TypeDecl
                          (RecordType { Identifier = ["User"; "outer"]
-                                       Fields = Map.ofList [("ID", PrimitiveType String)] });
+                                       Fields = [("ID", PrimitiveType String)] });
                        FIDLNamespace
                          { Identifier = ["inner"; "outer"]
                            Children =
                                      [TypeDecl
                                         (RecordType
                                            { Identifier = ["User"; "inner"; "outer"]
-                                             Fields = Map.ofList [("ID", PrimitiveType String)] })] }] }
+                                             Fields = [("ID", PrimitiveType String)] })] }] }
         |]
         
         yield [|
@@ -412,14 +412,14 @@ let fidlNamespaces : obj[] seq =
                 Children = [
                     ChoiceType {
                         Identifier = ["result"; "NotEmpty"]
-                        Cases = Map.ofList [
+                        Cases = [
                             "Ok", Some (PrimitiveType String)
                             "Error", None
                         ]
                     } |> TypeDecl
                     RecordType {
                         Identifier = ["User"; "NotEmpty"]
-                        Fields = Map.ofList [
+                        Fields = [
                             "ID", GUID |> PrimitiveType
                             "Name", String |> PrimitiveType
                         ]
@@ -439,14 +439,14 @@ let fidlNamespaces : obj[] seq =
                 Children = [
                     ChoiceType {
                         Identifier = ["result"; "NotEmpty"]
-                        Cases = Map.ofList [
+                        Cases = [
                             "Ok", Some (PrimitiveType String)
                             "Error", None
                         ]
                     } |> TypeDecl
                     RecordType {
                         Identifier = ["User"; "NotEmpty"]
-                        Fields = Map.ofList [
+                        Fields = [
                             "ID", GUID |> PrimitiveType
                             "Name", String |> PrimitiveType
                         ]

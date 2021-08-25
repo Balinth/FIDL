@@ -179,8 +179,8 @@ let pTypeDecl =
         )
         |>> (fun (identifier,fields) ->
             {
-                Identifier=identifier
-                Fields=Map.ofList fields
+                Identifier = identifier
+                Fields = fields
             } |> RecordType
         )
 
@@ -201,8 +201,10 @@ let pTypeDecl =
         .> pchar '|'
         .>. sepBy1 pChoiceCase pChoiceDelim
         |>> (fun (identifier, cases) ->
-            {Identifier=identifier;Cases=Map.ofList cases}
-            |> ChoiceType)
+            {
+                Identifier = identifier
+                Cases = cases
+            } |> ChoiceType)
 
     
     let pFunctionType =

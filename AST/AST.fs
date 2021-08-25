@@ -17,6 +17,8 @@ type QualifiedIdentifier = string list
 module QualifiedIdentifier =
     let stringize (qualifiedIdentifier : QualifiedIdentifier) =
         System.String.Join(".", List.rev qualifiedIdentifier)
+    let name (qualifiedIdentifier : QualifiedIdentifier) =
+        List.last qualifiedIdentifier
 
 type UnresolvedTypeRef =
     | Identifier of Identifier
@@ -29,12 +31,12 @@ type Collection =
 
 and Choice = {
     Identifier: QualifiedIdentifier
-    Cases: Map<Identifier,FIDLType option>
+    Cases: (Identifier * FIDLType option) list
 }
 
 and Record = {
     Identifier: QualifiedIdentifier
-    Fields: Map<Identifier, FIDLType>
+    Fields: (Identifier * FIDLType) list
 }
 
 and Function = {
