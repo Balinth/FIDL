@@ -63,24 +63,19 @@ class Build : NukeBuild
         .DependsOn(Compile)
         .Executes(() =>
         {
-            var tempOutputDir = Solution.Directory / "TestResults";
-            EnsureCleanDirectory(tempOutputDir);
+            // Note: uses msbuild integration due to vstests jankyness:
+            // strike 1: forced nondeterministic guid in output path,
+            // strike 2: inability to simply merge results for multiple test projects.
+            var testOutputDir = OutputDirectory / "TestResults/";
+            DeleteDirectory(testOutputDir);
+            new DirectoryInfo(testOutputDir).Create();
             DotNetTest(s => s
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)
                 .EnableNoBuild()
-                .SetDataCollector("XPlat Code Coverage")
-                .SetSettingsFile(".\\test.runsettings")
-                .SetResultsDirectory(tempOutputDir)
+                .SetProcessArgumentConfigurator(
+                    args => args.Add("/p:CollectCoverage=true  /p:CoverletOutput=\"" + testOutputDir + "/coverage\" /p:MergeWith=\"CoverageResults/coverage.json\" /p:CoverletOutputFormat=\\\"cobertura,lcov,opencover,json\\\" -m:1", true)
+                )
                 );
-            var testCoverageDir = OutputDirectory / "TestResults";
-            EnsureExistingDirectory(testCoverageDir);
-            EnsureCleanDirectory(testCoverageDir);
-            MoveDirectory(
-                new DirectoryInfo(tempOutputDir).GetDirectories().Single().FullName,
-                testCoverageDir,
-                DirectoryExistsPolicy.Merge,
-                FileExistsPolicy.Overwrite,
-                deleteRemainingFiles: true);
         });
 }
