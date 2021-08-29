@@ -9,8 +9,6 @@ type Layout =
     | ScopedIndent
     | Newline
 
-let scopedNewline = Group [Newline; ScopedIndent]
-
 type UnparserState = {
     IndentLevel: int
 }
@@ -32,25 +30,34 @@ let rec unparse (stringBuilder : StringBuilder) state layout =
         |> Seq.iter (unparse stringBuilder {state with IndentLevel = state.IndentLevel + 1} >> ignore)
         stringBuilder
 
+let scopedNewline = Group [Newline; ScopedIndent]
 
-let testAST = Group [
-    Scope [
-        ScopedIndent
-        Concat ["somehint"; "or other"]
-        scopedNewline
-        Concat ["onScopedNewline"]
-        Scope [
-            scopedNewline
-            Concat ["on inner scoped newline"]
-        ]
+let inBraces layout =
+    Group [
+        Concat ["("]
+        layout
+        Concat [")"]
     ]
-]
 
+let inSquareBraces layout =
+    Group [
+        Concat ["["]
+        layout
+        Concat ["]"]
+    ]
+    
+let inCurlyBraces layout =
+    Group [
+        Concat ["{"]
+        layout
+        Concat ["}"]
+    ]
 
-let sb = StringBuilder()
-unparse sb {IndentLevel = 0} testAST
-sb.ToString()
-
-module Say =
-    let hello name =
-        printfn "Hello %s" name
+let sepBy separator items =
+    items
+    |> Seq.fold (fun state item ->
+        match state with
+        | empty when Seq.isEmpty empty -> seq [item]
+        | someItems ->
+            Seq.concat [someItems; seq [separator]; seq [item]]) Seq.empty
+    |> Group

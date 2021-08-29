@@ -18,7 +18,7 @@ module QualifiedIdentifier =
     let stringize (qualifiedIdentifier : QualifiedIdentifier) =
         System.String.Join(".", List.rev qualifiedIdentifier)
     let name (qualifiedIdentifier : QualifiedIdentifier) =
-        List.last qualifiedIdentifier
+        List.head qualifiedIdentifier
 
 type UnresolvedTypeRef =
     | Identifier of Identifier
@@ -42,7 +42,7 @@ and Record = {
 and Function = {
     Identifier: QualifiedIdentifier
     ReturnType: FIDLType
-    Parameters: (Identifier* FIDLType) list
+    Parameters: (Identifier * FIDLType) list
 }
 
 and FIDLType =

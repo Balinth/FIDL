@@ -198,7 +198,7 @@ let pTypeDecl =
         >.>. pIdentifier
         |> addQualifiedIdentifierToState
         .> pchar '='
-        .> pchar '|'
+        .> (pchar '|' |> opt)
         .>. sepBy1 pChoiceCase pChoiceDelim
         |>> (fun (identifier, cases) ->
             {
