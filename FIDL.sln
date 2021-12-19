@@ -24,7 +24,20 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Generators", "Generators", 
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FIDLGenerator", "Generators\FIDLGenerator\FIDLGenerator.fsproj", "{B4911E25-0606-42F1-80C2-EB81BE703F03}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FIDLGenerator.Tests", "Generators\FIDLGenerator.Tests\FIDLGenerator.Tests.fsproj", "{873F28A7-3BD4-4337-B30D-387F7C0B3C20}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FIDLGenerator.Tests", "Generators\FIDLGenerator.Tests\FIDLGenerator.Tests.fsproj", "{873F28A7-3BD4-4337-B30D-387F7C0B3C20}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CSharpGenerator", "Generators\CSharpGenerator\CSharpGenerator.fsproj", "{36D5D088-655D-48E4-941A-A04D80AEDCD1}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CSharpGenerator.CLI", "Generators\CSharpGenerator.CLI\CSharpGenerator.CLI.fsproj", "{7FCBC4DF-B59D-4671-BBEE-6AA9BBC4D9E0}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CSharpGenerator.Tests", "Generators\CSharpGenerator.Tests\CSharpGenerator.Tests.fsproj", "{C9D753C5-2C1C-4BB8-B35F-458821E27499}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IntegrationTests", "IntegrationTests", "{D7D25531-2289-4682-977B-C7903C62DD4B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExampleAPI", "ExampleAPI", "{541C6E2C-6AA0-4A12-8945-F0275F7D54E7}"
+	ProjectSection(SolutionItems) = preProject
+		IntegrationTests\ExampleAPI\ExampleAPI.fidl = IntegrationTests\ExampleAPI\ExampleAPI.fidl
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -62,6 +75,18 @@ Global
 		{873F28A7-3BD4-4337-B30D-387F7C0B3C20}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{873F28A7-3BD4-4337-B30D-387F7C0B3C20}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{873F28A7-3BD4-4337-B30D-387F7C0B3C20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36D5D088-655D-48E4-941A-A04D80AEDCD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36D5D088-655D-48E4-941A-A04D80AEDCD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36D5D088-655D-48E4-941A-A04D80AEDCD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36D5D088-655D-48E4-941A-A04D80AEDCD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FCBC4DF-B59D-4671-BBEE-6AA9BBC4D9E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FCBC4DF-B59D-4671-BBEE-6AA9BBC4D9E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FCBC4DF-B59D-4671-BBEE-6AA9BBC4D9E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FCBC4DF-B59D-4671-BBEE-6AA9BBC4D9E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9D753C5-2C1C-4BB8-B35F-458821E27499}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9D753C5-2C1C-4BB8-B35F-458821E27499}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9D753C5-2C1C-4BB8-B35F-458821E27499}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9D753C5-2C1C-4BB8-B35F-458821E27499}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -69,6 +94,10 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B4911E25-0606-42F1-80C2-EB81BE703F03} = {7D0FE824-CC7B-408E-A504-769FC029304D}
 		{873F28A7-3BD4-4337-B30D-387F7C0B3C20} = {7D0FE824-CC7B-408E-A504-769FC029304D}
+		{36D5D088-655D-48E4-941A-A04D80AEDCD1} = {7D0FE824-CC7B-408E-A504-769FC029304D}
+		{7FCBC4DF-B59D-4671-BBEE-6AA9BBC4D9E0} = {7D0FE824-CC7B-408E-A504-769FC029304D}
+		{C9D753C5-2C1C-4BB8-B35F-458821E27499} = {7D0FE824-CC7B-408E-A504-769FC029304D}
+		{541C6E2C-6AA0-4A12-8945-F0275F7D54E7} = {D7D25531-2289-4682-977B-C7903C62DD4B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F62534A4-3186-4CB1-912D-1FAAAD1DBB68}

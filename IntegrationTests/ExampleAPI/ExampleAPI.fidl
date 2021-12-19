@@ -1,0 +1,20 @@
+namespace ExampleAPI {
+    
+    record Name {Given:string; Family:string}
+
+    recprd Adress{
+        Country:string;
+        City:string; // end ';' is optional in case of recard fields separated by newlines.
+        Street:string
+        PostalCode:string
+    }
+
+    record SomeDomainObject {
+        Id: guid
+        ImportantData: int
+        BusinessStuff: float
+        Adress: Adress
+        Name: Name
+    }
+
+}

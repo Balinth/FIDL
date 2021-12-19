@@ -32,6 +32,7 @@ class Build : NukeBuild
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
 
     [Solution] readonly Solution Solution;
+    [Solution("IntegrationTests/ExampleAPI")] readonly Solution ExampleAPI;
     [GitRepository] readonly GitRepository GitRepository;
 
     AbsolutePath OutputDirectory => RootDirectory / "output";
@@ -59,6 +60,15 @@ class Build : NukeBuild
                 .SetConfiguration(Configuration)
                 .EnableNoRestore());
         });
+
+    Target PublishTestPackage => _ => _
+        .DependsOn(Compile)
+        .Executes(() =>
+            DotNetPack(s => s
+                .SetOutputDirectory(OutputDirectory / "TestPackage")
+            )
+        );
+
     Target Test => _ => _
         .DependsOn(Compile)
         .Executes(() =>
